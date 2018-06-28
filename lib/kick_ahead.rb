@@ -2,16 +2,18 @@
 
 require "kick_ahead/version"
 require "kick_ahead/job"
+require "kick_ahead/ar_repository"
 
 module KickAhead
   OutOfInterval = Class.new(StandardError)
   NoTickIntervalConfigured = Class.new(RuntimeError)
+  NoCurrentTimeConfigured = Class.new(RuntimeError)
 
   RAISE_EXCEPTION_STRATEGY = :raise_exception
   IGNORE_STRATEGY = :ignore
   HOOK_STRATEGY = :hook
 
-  ALL_STRATEGIES = [RAISE_EXCEPTION_STRATEGY, IGNORE_STRATEGY, HOOK_STRATEGY].freeze
+  STRATEGIES = [RAISE_EXCEPTION_STRATEGY, IGNORE_STRATEGY, HOOK_STRATEGY].freeze
 
   class << self
     attr_accessor :tick_interval
@@ -24,7 +26,7 @@ module KickAhead
       end
 
       if current_time.nil?
-        raise 'You must configure a way for me to know the current time!'
+        raise NoCurrentTimeConfigured, 'You must configure a current_time lambda (i.e.: KickAhead.current_time = -> { Time.current })'
       end
 
       KickAhead.repository.each_job_in_the_past do |job|
@@ -59,6 +61,10 @@ module KickAhead
         else
           raise 'Invalid strategy'
       end
+    end
+
+    def create_active_record_repository_for(ar_model)
+      ArRepository.new(ar_model)
     end
 
     private
